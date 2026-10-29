@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMBS — KL Algorithm Interactive Case Study</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:150%}
+body{background:#f0f4f8;color:#1e293b;font-family:'Segoe UI',system-ui,sans-serif;padding:1.25rem;min-height:100vh}
+h1{font-size:1.3rem;font-weight:600;color:#0f172a;margin-bottom:.2rem}
+.sub{font-size:.72rem;color:#94a3b8;letter-spacing:2px;text-transform:uppercase;margin-bottom:1.1rem}
+.instr{font-size:.78rem;color:#475569;background:#fff;border:1px solid #e2e8f0;border-left:3px solid #3b82f6;border-radius:6px;padding:8px 12px;margin-bottom:1rem;line-height:1.5}
+.instr strong{color:#1d4ed8}
+.layout{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:1rem}
+.graph-wrap{flex-shrink:0}
+canvas{display:block;border-radius:10px;cursor:grab;background:#fff;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+canvas.grabbing{cursor:grabbing}
+.stats{display:flex;flex-direction:column;gap:10px;min-width:210px;flex:1}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:.85rem 1rem;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.ct{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:.6rem}
+.cv{font-size:2.2rem;font-weight:700;font-family:'Courier New',monospace;color:#d97706;line-height:1}
+.cs{font-size:.68rem;color:#64748b;margin-top:3px;font-family:'Courier New',monospace;line-height:1.4;word-break:break-all}
+table{width:100%;border-collapse:collapse;font-size:.75rem}
+th{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;padding:4px 5px;border-bottom:1px solid #e2e8f0;text-align:left}
+td{padding:5px 5px;border-bottom:1px solid #f1f5f9;font-family:'Courier New',monospace;color:#334155}
+tr:last-child td{border-bottom:none}
+.pos{color:#16a34a;font-weight:700}.neg{color:#dc2626}.zer{color:#94a3b8}
+tr.rhl td{background:#f0fdf4}
+tr.rdc td{background:#fef2f2}
+.sfml{font-family:'Courier New',monospace;font-size:.72rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px 10px;color:#15803d;line-height:1.6;margin-top:6px}
+.controls{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:1rem}
+button{padding:6px 14px;border-radius:7px;font-size:.78rem;cursor:pointer;border:1px solid #cbd5e1;transition:all .12s;font-family:inherit;background:#fff;color:#475569}
+.bp{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:600}.bp:hover:not(:disabled){background:#1d4ed8}
+.bs{background:#fff;color:#64748b;border-color:#e2e8f0}.bs:hover:not(:disabled){background:#f8fafc;color:#334155}
+.bg{background:#f0fdf4;border-color:#bbf7d0;color:#15803d;font-weight:600}.bg:hover:not(:disabled){background:#dcfce7}
+.br{background:#fef2f2;border-color:#fecaca;color:#b91c1c}.br:hover:not(:disabled){background:#fee2e2}
+button:disabled{opacity:.3;cursor:not-allowed}
+.psect{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.pstat{font-size:.75rem;color:#64748b;margin-bottom:.6rem;font-style:italic;line-height:1.4}
+.phint{font-size:.72rem;color:#94a3b8;margin-top:.5rem;display:none}
+.lsect{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:.85rem 1rem;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.lentry{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:.75rem}
+.lentry:last-child{border-bottom:none}
+.lp{font-weight:700;color:#2563eb;min-width:55px;font-family:monospace}
+.lsw{color:#64748b;flex:1}.lg{font-family:monospace}.lc{font-family:monospace;color:#d97706}
+.csw{display:inline-block;padding:1px 5px;border-radius:3px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-size:.65rem;font-weight:700}
+.chw{display:inline-block;padding:1px 5px;border-radius:3px;background:#f5f3ff;border:1px solid #ddd6fe;color:#6d28d9;font-size:.65rem;font-weight:700}
+.conv{background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:.65rem 1rem;color:#15803d;font-size:.8rem;font-weight:600;margin-bottom:1rem;display:none}
+.noim{background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:.65rem 1rem;color:#b91c1c;font-size:.78rem;margin-bottom:1rem;display:none}
+/* Keep the graph usable within the book column and on small screens. */
+html{font-size:125%}
+body{max-width:1200px;margin:0 auto;background:#fafbf9}
+h1{color:#183c32;letter-spacing:-.025em;line-height:1.25}
+.sub,.ct,.phint{color:#52665e}
+.sub{line-height:1.6;letter-spacing:.08em}
+.instr{border-left-color:#0f766e;background:#edf5f1}
+.instr strong{color:#115e59}
+.card,.psect,.lsect,canvas{border-color:#d9e4df;box-shadow:none;border-radius:12px}
+.graph-wrap{max-width:100%}
+canvas{max-width:100%;height:auto;touch-action:none}
+.bp{background:#115e59;border-color:#115e59}
+.bp:hover:not(:disabled){background:#0f766e}
+button{min-height:40px}
+button:focus-visible,#optLabel:focus-within{outline:3px solid #0f766e;outline-offset:3px}
+.psect{overflow-x:auto}
+@media(max-width:680px){body{padding:.75rem}.layout{flex-direction:column}.stats{min-width:unset;width:100%}.lentry{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<h1>Kernighan–Lin Algorithm (K-L Algorithm)</h1>
+<div class="sub">Embedded Systems Design and Implementation (EMBS) · HW / SW Co-Design Partitioning</div>
+<div style="font-size:.75rem;color:#94a3b8;margin-bottom:1rem">Dr Steven Xiaotian Dai</div>
+
+<div class="instr" id="instr">
+  <strong>Explore:</strong> Drag any node across the centre line to reassign it between SW ↔ HW — D values and cut cost update live. &nbsp;|&nbsp;
+  <strong>Algorithm:</strong> Click <strong>Start KL Pass</strong> to step through the algorithm from the current partition.
+</div>
+
+<div class="conv" id="convBanner">✓ Converged — cut cost <span id="fcSpan"></span> is locally optimal. No further improvement possible.</div>
+<div class="noim" id="noimBanner">No improvement found in this pass — partition is already a local optimum from here.</div>
+
+<div class="layout">
+  <div class="graph-wrap">
+    <canvas id="cv" width="620" height="450"></canvas>
+  </div>
+  <div class="stats">
+    <div class="card">
+      <div class="ct">Cut cost</div>
+      <div class="cv" id="cutVal">14</div>
+      <div class="cs" id="cutSub"></div>
+    </div>
+    <div class="card">
+      <div class="ct">D values &nbsp;<span style="font-weight:400;font-size:.62rem;color:#475569">(ext − int)</span></div>
+      <table><thead><tr><th>Node</th><th>Part</th><th>D</th><th>Int</th><th>Ext</th></tr></thead>
+        <tbody id="dBody"></tbody></table>
+    </div>
+    <div class="card">
+      <div class="ct">Best swap candidate</div>
+      <div id="bestSwapDiv"></div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="bp" id="btnSt"  onclick="startPass()">▶ Start KL Pass</button>
+  <button class="bs" id="btnLk"  onclick="lockNext()" disabled>Lock Next Pair →</button>
+  <button class="bg" id="btnAp"  onclick="applyPass()" disabled style="display:none">✓ Apply Optimal Swaps</button>
+  <button class="bs" id="btnSk"  onclick="skipToEnd()" disabled>Skip to end</button>
+  <button class="bs"             onclick="randomise()">⚄ Randomise</button>
+  <label id="optLabel" style="display:inline-flex;align-items:center;gap:7px;cursor:pointer;padding:6px 10px;border-radius:7px;border:1px solid #e2e8f0;background:#fff;font-size:.78rem;color:#64748b;user-select:none;transition:border-color .15s,background .15s">
+    <span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0">
+      <input type="checkbox" id="chkOpt" onchange="toggleOptimal()" style="opacity:0;width:0;height:0;position:absolute">
+      <span id="optTrack" style="position:absolute;inset:0;border-radius:9px;background:#cbd5e1;transition:background .2s"></span>
+      <span id="optThumb" style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s"></span>
+    </span>
+    Show optimal swap
+  </label>
+  <button class="br"             onclick="reset()">↩ Reset</button>
+</div>
+
+<div class="psect">
+  <div class="ct">KL Pass — Step Log</div>
+  <div class="pstat" id="pStat">No pass in progress. Click "Start KL Pass" to begin.</div>
+  <table id="pTbl" style="display:none">
+    <thead><tr><th>#</th><th>Locked pair</th><th>Formula</th><th>Gain</th><th>Cumulative</th><th></th></tr></thead>
+    <tbody id="pBody"></tbody>
+  </table>
+  <div class="phint" id="phint"></div>
+</div>
+
+<div class="lsect">
+  <div class="ct">Iteration Log</div>
+  <div id="logDiv"><div style="font-size:.75rem;color:#475569;font-style:italic">No passes completed yet.</div></div>
+</div>
+
+<script>
+// ── Constants ────────────────────────────────────────────────────────────────
+const W=620,H=450,CX=310,R=22;
+const EDGES=[
+  // SW-cluster internal edges
+  {a:'T1',b:'T2',w:5},{a:'T2',b:'T3',w:4},{a:'T3',b:'T4',w:5},{a:'T1',b:'T4',w:3},
+  // HW-cluster internal edges
+  {a:'T5',b:'T6',w:5},{a:'T6',b:'T7',w:4},{a:'T7',b:'T8',w:5},{a:'T5',b:'T8',w:3},
+  // Cross edges — heavier ones drive multi-pass behaviour
+  {a:'T2',b:'T6',w:3},{a:'T3',b:'T7',w:3},
+  {a:'T1',b:'T5',w:1},{a:'T4',b:'T8',w:1}
+];
+const ALL=['T1','T2','T3','T4','T5','T6','T7','T8'];
+// Initial partition: SW={T1,T3,T5,T7}, HW={T2,T4,T6,T8}
+// T5,T7 wrongly placed in SW; T2,T4 wrongly placed in HW
+// Heavy cross edges T2↔T6 and T3↔T7 make pass 1 greedy choices
+// leave residual improvement — requires pass 2 to converge
+const IPOS={
+  T1:{x:80,y:80},  T3:{x:220,y:170}, T5:{x:80,y:300}, T7:{x:220,y:390},
+  T2:{x:540,y:80}, T4:{x:400,y:170}, T6:{x:540,y:300}, T8:{x:400,y:390}
+};
+// Fixed slot grid for each zone — randomise() picks from these
+const SW_SLOTS=[
+  {x:75,y:75},{x:215,y:75},{x:75,y:200},{x:215,y:200},
+  {x:145,y:137},{x:75,y:340},{x:215,y:340},{x:145,y:280}
+];
+const HW_SLOTS=[
+  {x:405,y:75},{x:545,y:75},{x:405,y:200},{x:545,y:200},
+  {x:475,y:137},{x:405,y:340},{x:545,y:340},{x:475,y:280}
+];
+
+// ── State ────────────────────────────────────────────────────────────────────
+let pos={},ps=null,log=[],passN=0,dn=null,dox=0,doy=0,anim=false,showOptimal=false;
+
+function cp(o){return JSON.parse(JSON.stringify(o));}
+function gp(id){return pos[id].x<CX?'SW':'HW';}
+function allPart(){const p={};ALL.forEach(id=>p[id]=gp(id));return p;}
+
+// ── Core KL ──────────────────────────────────────────────────────────────────
+function ec(a,b){const e=EDGES.find(x=>(x.a===a&&x.b===b)||(x.a===b&&x.b===a));return e?e.w:0;}
+
+function dv(id,p){
+  let ext=0,int_=0;
+  EDGES.forEach(e=>{
+    if(e.a===id||e.b===id){
+      const o=e.a===id?e.b:e.a;
+      if(p[o]===p[id]) int_+=e.w; else ext+=e.w;
+    }
+  });
+  return{d:ext-int_,int_,ext};
+}
+
+function allDV(p){const m={};ALL.forEach(id=>m[id]=dv(id,p));return m;}
+function cut(p){return EDGES.filter(e=>p[e.a]!==p[e.b]).reduce((s,e)=>s+e.w,0);}
+function cutE(p){return EDGES.filter(e=>p[e.a]!==p[e.b]);}
+
+function bestPair(p,locked){
+  const dm=allDV(p);
+  const sw=ALL.filter(id=>p[id]==='SW'&&!locked[id]);
+  const hw=ALL.filter(id=>p[id]==='HW'&&!locked[id]);
+  let best=null,bg=-Infinity;
+  sw.forEach(a=>hw.forEach(b=>{
+    const c=ec(a,b),g=dm[a].d+dm[b].d-2*c;
+    if(g>bg){bg=g;best={a,b,g,da:dm[a].d,db:dm[b].d,c};}
+  }));
+  return best;
+}
+
+function simulate(sp){
+  const vp=cp(sp),locked={},steps=[];
+  for(let i=0;i<ALL.length/2;i++){
+    const dm=allDV(vp);
+    const sw=ALL.filter(id=>vp[id]==='SW'&&!locked[id]);
+    const hw=ALL.filter(id=>vp[id]==='HW'&&!locked[id]);
+    if(!sw.length||!hw.length) break;
+    let best=null,bg=-Infinity;
+    sw.forEach(a=>hw.forEach(b=>{
+      const c=ec(a,b),g=dm[a].d+dm[b].d-2*c;
+      if(g>bg){bg=g;best={a,b,g,da:dm[a].d,db:dm[b].d,c};}
+    }));
+    if(!best) break;
+    locked[best.a]=locked[best.b]=true;
+    const cum=steps.reduce((s,x)=>s+x.g,0)+best.g;
+    steps.push({...best,cum});
+    vp[best.a]=vp[best.a]==='SW'?'HW':'SW';
+    vp[best.b]=vp[best.b]==='SW'?'HW':'SW';
+  }
+  let pk=0,pc=0;
+  steps.forEach((s,i)=>{if(s.cum>pc){pc=s.cum;pk=i+1;}});
+  return{steps,peakK:pk,peakCum:pc};
+}
+
+// ── Canvas ────────────────────────────────────────────────────────────────────
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // Zones
+  ctx.fillStyle='rgba(59,130,246,0.05)';  ctx.fillRect(0,0,CX,H);
+  ctx.fillStyle='rgba(124,58,237,0.05)'; ctx.fillRect(CX,0,W-CX,H);
+  // Zone labels
+  ctx.font='15px Courier New';ctx.textBaseline='top';
+  ctx.fillStyle='rgba(37,99,235,0.4)'; ctx.textAlign='left';  ctx.fillText('SW',14,10);
+  ctx.fillStyle='rgba(109,40,217,0.4)';ctx.textAlign='right'; ctx.fillText('HW',W-14,10);
+  ctx.textBaseline='alphabetic';
+  // Divider
+  ctx.save();ctx.setLineDash([4,7]);ctx.strokeStyle='rgba(220,38,38,0.25)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(CX,0);ctx.lineTo(CX,H);ctx.stroke();ctx.restore();
+  ctx.font='14px Courier New';ctx.textAlign='center';
+  ctx.fillStyle='rgba(220,38,38,0.4)';ctx.fillText('CUT',CX,13);
+
+  const p=allPart(),dm=allDV(p);
+
+  // Highlights
+  const hl={};const locked=new Set();let nxt=null;
+  if(ps){
+    for(let i=0;i<ps.cur;i++){
+      const s=ps.steps[i];
+      locked.add(s.a);locked.add(s.b);
+      hl[s.a]=i<ps.peakK?'ok':'disc';
+      hl[s.b]=i<ps.peakK?'ok':'disc';
+    }
+    if(ps.cur<ps.steps.length){
+      nxt=ps.steps[ps.cur];
+      hl[nxt.a]=hl[nxt.b]='nxt';
+    }
+  } else {
+    const b=bestPair(p,{});
+    if(b&&b.g>0){hl[b.a]=hl[b.b]='sug';}
+  }
+
+  // Edges
+  EDGES.forEach(e=>{
+    const p1=pos[e.a],p2=pos[e.b],cut=p[e.a]!==p[e.b];
+    ctx.save();
+    if(cut){ctx.setLineDash([6,4]);ctx.strokeStyle='rgba(220,38,38,0.85)';ctx.lineWidth=2;}
+    else{ctx.strokeStyle=p[e.a]==='SW'?'rgba(59,130,246,0.45)':'rgba(109,40,217,0.4)';ctx.lineWidth=1.5;}
+    ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();ctx.restore();
+    const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2-7;
+    ctx.font='15px Courier New';ctx.textAlign='center';
+    ctx.fillStyle=cut?'rgba(185,28,28,0.85)':'rgba(148,163,184,0.9)';
+    ctx.fillText(e.w,mx,my);
+  });
+
+  // Best-swap arc (explore mode, only when showOptimal is on)
+  if(!ps&&showOptimal){
+    const b=bestPair(p,{});
+    if(b&&b.g>0){
+      const p1=pos[b.a],p2=pos[b.b];
+      const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2-36;
+      ctx.save();ctx.setLineDash([5,5]);
+      ctx.strokeStyle='rgba(22,163,74,0.55)';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.quadraticCurveTo(mx,my,p2.x,p2.y);ctx.stroke();ctx.restore();
+      ctx.font='bold 15px Courier New';ctx.textAlign='center';
+      ctx.fillStyle='rgba(22,163,74,0.9)';
+      ctx.fillText('gain='+(b.g>0?'+':'')+b.g,mx,my-6);
+    }
+  }
+
+  // Next-pair arc (pass mode)
+  if(nxt){
+    const p1=pos[nxt.a],p2=pos[nxt.b];
+    const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2-34;
+    ctx.save();ctx.setLineDash([5,5]);
+    ctx.strokeStyle='rgba(217,119,6,0.55)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.quadraticCurveTo(mx,my,p2.x,p2.y);ctx.stroke();ctx.restore();
+    ctx.font='bold 15px Courier New';ctx.textAlign='center';
+    ctx.fillStyle='rgba(180,83,9,0.9)';
+    ctx.fillText('gain='+(nxt.g>0?'+':'')+nxt.g,mx,my-6);
+  }
+
+  // Nodes
+  ALL.forEach(id=>{
+    const {x,y}=pos[id],isSW=p[id]==='SW',h=hl[id],lk=locked.has(id);
+    const fill=isSW?'#eff6ff':'#f5f3ff';
+    const strk=isSW?'#2563eb':'#7c3aed';
+    const tc=isSW?'#1d4ed8':'#5b21b6';
+
+    // Outer ring
+    if(h==='nxt'){
+      ctx.save();ctx.shadowColor='rgba(217,119,6,0.3)';ctx.shadowBlur=8;
+      ctx.beginPath();ctx.arc(x,y,R+8,0,Math.PI*2);
+      ctx.strokeStyle='rgba(217,119,6,0.55)';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();
+    } else if(h==='sug'&&showOptimal){
+      ctx.save();ctx.setLineDash([3,3]);
+      ctx.beginPath();ctx.arc(x,y,R+7,0,Math.PI*2);
+      ctx.strokeStyle='rgba(22,163,74,0.55)';ctx.lineWidth=1.2;ctx.stroke();ctx.restore();
+    } else if(h==='ok'){
+      ctx.beginPath();ctx.arc(x,y,R+6,0,Math.PI*2);
+      ctx.fillStyle='rgba(22,163,74,0.1)';ctx.fill();
+    }
+
+    ctx.beginPath();ctx.arc(x,y,R,0,Math.PI*2);
+    ctx.fillStyle=lk?'#f8fafc':fill;ctx.fill();
+    ctx.strokeStyle=h==='nxt'?'#d97706':h==='ok'?'#16a34a':h==='disc'?'#cbd5e1':strk;
+    ctx.lineWidth=h?2.5:2;ctx.stroke();
+    if(lk){ctx.beginPath();ctx.arc(x,y,R,0,Math.PI*2);ctx.fillStyle='rgba(248,250,252,0.6)';ctx.fill();}
+
+    ctx.font="bold 17px 'Courier New'";ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=lk?'#cbd5e1':h==='nxt'?'#b45309':h==='ok'?'#15803d':h==='disc'?'#94a3b8':tc;
+    ctx.fillText(id,x,y);ctx.textBaseline='alphabetic';
+
+    // D label
+    if(!ps){
+      const d=dm[id].d;
+      ctx.font="14px 'Courier New'";ctx.textAlign='center';
+      ctx.fillStyle=d>0?'rgba(22,163,74,0.85)':d<0?'rgba(220,38,38,0.75)':'rgba(148,163,184,0.8)';
+      ctx.fillText((d>0?'+':'')+d,x,y+R+13);
+    }
+    if(h==='nxt'){
+      ctx.font="12px 'Courier New'";ctx.textAlign='center';
+      ctx.fillStyle='rgba(180,83,9,0.75)';ctx.fillText('next',x,y+R+13);
+    }
+    if(h==='ok'){
+      ctx.font="12px 'Courier New'";ctx.textAlign='center';
+      ctx.fillStyle='rgba(22,163,74,0.75)';ctx.fillText('swap✓',x,y+R+13);
+    }
+  });
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function updateStats(){
+  // During a pass, compute D values on the virtual partition
+  // (applying swaps locked so far), with locked nodes highlighted.
+  const baseP=allPart();
+  let vp=cp(baseP);
+  const locked={};
+
+  if(ps&&ps.cur>0){
+    ps.steps.slice(0,ps.cur).forEach(s=>{
+      const tmp=vp[s.a];vp[s.a]=vp[s.b];vp[s.b]=tmp;
+      locked[s.a]=true;locked[s.b]=true;
+    });
+  }
+
+  const dm=allDV(vp),cc=cut(vp),ce=cutE(vp);
+  document.getElementById('cutVal').textContent=cc;
+  document.getElementById('cutSub').textContent=ce.length?ce.map(e=>e.a+'↔'+e.b+':'+e.w).join('  '):'No crossing edges';
+
+  let html='';
+  ALL.forEach(id=>{
+    const r=dm[id],dc=r.d>0?'pos':r.d<0?'neg':'zer';
+    const chip=vp[id]==='SW'?'<span class="csw">SW</span>':'<span class="chw">HW</span>';
+    const lkStyle=locked[id]?'style="opacity:.45"':'';
+    const lkIcon=locked[id]?' 🔒':'';
+    html+=`<tr ${lkStyle}><td>${id}${lkIcon}</td><td>${chip}</td><td class="${dc}">${r.d>0?'+':''}${r.d}</td><td>${r.int_}</td><td>${r.ext}</td></tr>`;
+  });
+  document.getElementById('dBody').innerHTML=html;
+
+  const bDiv=document.getElementById('bestSwapDiv');
+  if(ps&&ps.cur>0){
+    // During pass: show next candidate from virtual partition (unlocked nodes)
+    const nxtStep=ps.steps[ps.cur];
+    if(nxtStep){
+      const da=dm[nxtStep.a].d,db=dm[nxtStep.b].d,c=ec(nxtStep.a,nxtStep.b);
+      const g=da+db-2*c,gc=g>0?'pos':g<0?'neg':'zer';
+      bDiv.innerHTML=`<div style="font-size:.75rem;color:#94a3b8;margin-bottom:4px">
+        Next: <span class="csw">${nxtStep.a}</span>&nbsp;↔&nbsp;<span class="chw">${nxtStep.b}</span></div>
+        <div class="sfml">D(${nxtStep.a}) + D(${nxtStep.b}) − 2×cost(${nxtStep.a},${nxtStep.b})<br>
+        = ${da} + ${db} − 2×${c}<br>
+        = <span class="${gc}">${g>0?'+':''}${g}</span></div>`;
+    } else {
+      bDiv.innerHTML='<div style="font-size:.75rem;color:#475569;font-style:italic">All pairs locked.</div>';
+    }
+  } else {
+    // Explore mode: show best swap from current real partition
+    const b=bestPair(vp,{});
+    if(b){
+      const gc=b.g>0?'pos':b.g<0?'neg':'zer';
+      bDiv.innerHTML=`<div style="font-size:.75rem;color:#94a3b8;margin-bottom:4px">
+        <span class="csw">${b.a}</span>&nbsp;↔&nbsp;<span class="chw">${b.b}</span></div>
+        <div class="sfml">D(${b.a}) + D(${b.b}) − 2×cost(${b.a},${b.b})<br>
+        = ${b.da} + ${b.db} − 2×${b.c}<br>
+        = <span class="${gc}">${b.g>0?'+':''}${b.g}</span></div>`;
+    } else {
+      bDiv.innerHTML='<div style="font-size:.75rem;color:#475569;font-style:italic">No valid pairs.</div>';
+    }
+  }
+}
+
+// ── Pass logic ────────────────────────────────────────────────────────────────
+function startPass(){
+  const p=allPart(),sim=simulate(p);
+  ps={steps:sim.steps,cur:0,peakK:sim.peakK,peakCum:sim.peakCum,startCut:cut(p)};
+  document.getElementById('btnSt').disabled=true;
+  document.getElementById('btnLk').disabled=false;
+  document.getElementById('btnSk').disabled=false;
+  document.getElementById('btnAp').style.display='none';
+  document.getElementById('btnAp').disabled=true;
+  document.getElementById('pTbl').style.display='table';
+  document.getElementById('pBody').innerHTML='';
+  document.getElementById('phint').style.display='none';
+  document.getElementById('noimBanner').style.display='none';
+  updPStat();draw();updateStats();
+  setInstr(`Pass started. Cut cost = <strong>${ps.startCut}</strong>. Peak gain predicted = <strong>+${sim.peakCum}</strong> at step ${sim.peakK}. Click <strong>Lock Next Pair</strong> to step through.`);
+}
+
+function lockNext(){
+  if(!ps||ps.cur>=ps.steps.length) return;
+  const s=ps.steps[ps.cur];ps.cur++;
+  const isPeak=ps.cur===ps.peakK,isDisc=ps.cur>ps.peakK;
+  const tr=document.createElement('tr');
+  tr.className=isPeak?'rhl':isDisc?'rdc':'';
+  tr.innerHTML=`<td>${ps.cur}</td><td><strong>${s.a} ↔ ${s.b}</strong></td>`+
+    `<td style="font-size:.65rem;color:#64748b">${s.da}+${s.db}−2×${s.c}</td>`+
+    `<td class="${s.g>0?'pos':s.g<0?'neg':'zer'}">${s.g>0?'+':''}${s.g}</td>`+
+    `<td class="${s.cum>0?'pos':s.cum<0?'neg':'zer'}">${s.cum>0?'+':''}${s.cum}</td>`+
+    `<td style="font-size:.65rem;color:${isPeak?'#4ade80':isDisc?'#6b7280':'#94a3b8'}">${isPeak?'← peak':isDisc?'discard':'locked'}</td>`;
+  document.getElementById('pBody').appendChild(tr);
+  if(ps.cur>=ps.steps.length){
+    document.getElementById('btnLk').disabled=true;
+    document.getElementById('btnSk').disabled=true;
+    const ok=ps.peakCum>0;
+    document.getElementById('btnAp').style.display='inline-block';
+    document.getElementById('btnAp').disabled=!ok;
+    if(!ok) document.getElementById('noimBanner').style.display='block';
+    const ph=document.getElementById('phint');
+    ph.style.display='block';
+    ph.textContent=ok?`Optimal prefix: first ${ps.peakK} swap(s). Steps ${ps.peakK+1}–${ps.steps.length} discarded.`:'No improvement — no swaps will be applied.';
+    setInstr(ok?`All pairs locked. Click <strong>Apply Optimal Swaps</strong> to commit the first <strong>${ps.peakK}</strong> swap(s) (gain <strong>+${ps.peakCum}</strong>).`:'All pairs locked. Cumulative gain never exceeded 0 — already at local optimum.');
+  }
+  updPStat();draw();updateStats();
+}
+
+function skipToEnd(){
+  while(ps&&ps.cur<ps.steps.length) lockNext();
+}
+
+function applyPass(){
+  if(!ps||ps.peakCum<=0) return;
+  const pairs=ps.steps.slice(0,ps.peakK).map(s=>[s.a,s.b]);
+  const gain=ps.peakCum,fc=ps.startCut;
+  animSwaps(pairs,()=>{
+    const nc=cut(allPart());
+    passN++;
+    log.push({n:passN,swaps:pairs.map(([a,b])=>a+'↔'+b).join(', '),gain,from:fc,to:nc});
+    updLog();
+    ps=null;
+    document.getElementById('btnSt').disabled=false;
+    document.getElementById('btnLk').disabled=true;
+    document.getElementById('btnSk').disabled=true;
+    document.getElementById('btnAp').style.display='none';
+    document.getElementById('pTbl').style.display='none';
+    document.getElementById('pBody').innerHTML='';
+    document.getElementById('phint').style.display='none';
+    document.getElementById('pStat').textContent='No pass in progress.';
+    const nxt=simulate(allPart());
+    if(nxt.peakCum<=0){
+      document.getElementById('convBanner').style.display='block';
+      document.getElementById('fcSpan').textContent=nc;
+      document.getElementById('btnSt').disabled=true;
+      setInstr(`<strong>Converged!</strong> Final cut cost = <strong>${nc}</strong>. SW and HW are locally optimal — no further improvement possible.`);
+    } else {
+      setInstr(`Pass ${passN} complete. Cut cost: ${fc} → <strong>${nc}</strong>. Another pass possible (gain up to +${nxt.peakCum}). Drag to explore or start another pass.`);
+    }
+    draw();updateStats();
+  });
+}
+
+function updPStat(){
+  if(!ps){document.getElementById('pStat').textContent='No pass in progress.';return;}
+  const cum=ps.steps.slice(0,ps.cur).reduce((s,x)=>s+x.g,0);
+  document.getElementById('pStat').innerHTML=
+    `Step <strong>${ps.cur}/${ps.steps.length}</strong> locked.  Cumulative gain: `+
+    `<span class="${cum>0?'pos':'neg'}" style="font-family:monospace">${cum>0?'+':''}${cum}</span>`+
+    (ps.cur>0?` · Peak at step <strong>${ps.peakK}</strong> `+
+    `(<span class="pos" style="font-family:monospace">+${ps.peakCum}</span>)`:'');
+}
+
+function updLog(){
+  const el=document.getElementById('logDiv');
+  if(!log.length){el.innerHTML='<div style="font-size:.75rem;color:#475569;font-style:italic">No passes completed yet.</div>';return;}
+  el.innerHTML=log.map(e=>`<div class="lentry">
+    <span class="lp">Pass ${e.n}</span>
+    <span class="lsw">${e.swaps}</span>
+    <span class="lg ${e.gain>0?'pos':'neg'}">${e.gain>0?'+':''}${e.gain}</span>
+    <span style="color:#475569;font-size:.67rem">cut:</span>
+    <span class="lc">${e.from}→${e.to}</span>
+  </div>`).join('');
+}
+
+function setInstr(h){document.getElementById('instr').innerHTML=h;}
+
+// ── Animation ─────────────────────────────────────────────────────────────────
+function animSwaps(pairs,done){
+  anim=true;
+  const dur=600,t0=performance.now();
+  const fr={},to={};
+  pairs.forEach(([a,b])=>{fr[a]={...pos[a]};fr[b]={...pos[b]};to[a]={...pos[b]};to[b]={...pos[a]};});
+  function ease(t){return t<0.5?2*t*t:-1+(4-2*t)*t;}
+  function tick(now){
+    const t=Math.min((now-t0)/dur,1),e=ease(t);
+    pairs.forEach(([a,b])=>{
+      pos[a]={x:fr[a].x+(to[a].x-fr[a].x)*e,y:fr[a].y+(to[a].y-fr[a].y)*e};
+      pos[b]={x:fr[b].x+(to[b].x-fr[b].x)*e,y:fr[b].y+(to[b].y-fr[b].y)*e};
+    });
+    draw();updateStats();
+    if(t<1)requestAnimationFrame(tick);
+    else{pairs.forEach(([a,b])=>{pos[a]={...to[a]};pos[b]={...to[b]};});anim=false;draw();updateStats();done();}
+  }
+  requestAnimationFrame(tick);
+}
+
+// ── Drag ──────────────────────────────────────────────────────────────────────
+function getXY(e){
+  const r=cv.getBoundingClientRect(),sx=W/r.width,sy=H/r.height;
+  const cx=e.touches?e.touches[0].clientX:e.clientX;
+  const cy=e.touches?e.touches[0].clientY:e.clientY;
+  return{x:(cx-r.left)*sx,y:(cy-r.top)*sy};
+}
+function nodeAt(x,y){return ALL.find(id=>(pos[id].x-x)**2+(pos[id].y-y)**2<=(R+4)**2);}
+
+cv.addEventListener('mousedown',e=>{
+  if(ps||anim)return;
+  const{x,y}=getXY(e);dn=nodeAt(x,y);
+  if(dn){dox=pos[dn].x-x;doy=pos[dn].y-y;cv.classList.add('grabbing');}
+});
+cv.addEventListener('mousemove',e=>{
+  if(!dn)return;
+  const{x,y}=getXY(e);
+  pos[dn]={x:Math.max(R+3,Math.min(W-R-3,x+dox)),y:Math.max(R+3,Math.min(H-R-3,y+doy))};
+  draw();updateStats();
+});
+cv.addEventListener('mouseup',()=>{dn=null;cv.classList.remove('grabbing');});
+cv.addEventListener('mouseleave',()=>{if(dn){dn=null;cv.classList.remove('grabbing');}});
+
+cv.addEventListener('touchstart',e=>{if(ps||anim)return;e.preventDefault();
+  const{x,y}=getXY(e);dn=nodeAt(x,y);if(dn){dox=pos[dn].x-x;doy=pos[dn].y-y;}},{passive:false});
+cv.addEventListener('touchmove',e=>{e.preventDefault();if(!dn)return;
+  const{x,y}=getXY(e);
+  pos[dn]={x:Math.max(R+3,Math.min(W-R-3,x+dox)),y:Math.max(R+3,Math.min(H-R-3,y+doy))};
+  draw();updateStats();},{passive:false});
+cv.addEventListener('touchend',()=>{dn=null;});
+
+// ── Toggle optimal swap hint ───────────────────────────────────────────────────
+function toggleOptimal(){
+  showOptimal=document.getElementById('chkOpt').checked;
+  const track=document.getElementById('optTrack');
+  const thumb=document.getElementById('optThumb');
+  const label=document.getElementById('optLabel');
+  track.style.background=showOptimal?'#16a34a':'#cbd5e1';
+  thumb.style.transform=showOptimal?'translateX(14px)':'translateX(0)';
+  label.style.borderColor=showOptimal?'#bbf7d0':'#e2e8f0';
+  label.style.color=showOptimal?'#15803d':'#64748b';
+  label.style.background=showOptimal?'#f0fdf4':'#fff';
+  draw();
+}
+
+// ── Randomise ─────────────────────────────────────────────────────────────────
+// Generates a random balanced partition (4 SW, 4 HW) and snaps nodes to
+// randomised slot positions within each zone, then clears all pass state.
+function randomise(){
+  if(anim)return;
+
+  // Shuffle ALL into two equal halves
+  const shuffled=[...ALL].sort(()=>Math.random()-0.5);
+  const swNodes=shuffled.slice(0,4),hwNodes=shuffled.slice(4);
+
+  // Randomised slot pools — pick a random slot order within each zone
+  const swSlots=[...SW_SLOTS].sort(()=>Math.random()-0.5);
+  const hwSlots=[...HW_SLOTS].sort(()=>Math.random()-0.5);
+
+  const newPos={};
+  swNodes.forEach((id,i)=>newPos[id]={...swSlots[i]});
+  hwNodes.forEach((id,i)=>newPos[id]={...hwSlots[i]});
+
+  // Animate nodes flying to new positions
+  anim=true;
+  const dur=480,t0=performance.now();
+  const from={},to={};
+  ALL.forEach(id=>{from[id]={...pos[id]};to[id]={...newPos[id]};});
+  function ease(t){return t<0.5?2*t*t:-1+(4-2*t)*t;}
+  function tick(now){
+    const t=Math.min((now-t0)/dur,1),e=ease(t);
+    ALL.forEach(id=>{
+      pos[id]={x:from[id].x+(to[id].x-from[id].x)*e,
+               y:from[id].y+(to[id].y-from[id].y)*e};
+    });
+    draw();updateStats();
+    if(t<1){requestAnimationFrame(tick);}
+    else{
+      ALL.forEach(id=>pos[id]={...to[id]});
+      anim=false;
+      // Clear all pass/log state
+      ps=null;log=[];passN=0;
+      document.getElementById('btnSt').disabled=false;
+      document.getElementById('btnLk').disabled=true;
+      document.getElementById('btnSk').disabled=true;
+      document.getElementById('btnAp').style.display='none';
+      document.getElementById('pTbl').style.display='none';
+      document.getElementById('pBody').innerHTML='';
+      document.getElementById('phint').style.display='none';
+      document.getElementById('pStat').textContent='No pass in progress. Click "Start KL Pass" to begin.';
+      document.getElementById('convBanner').style.display='none';
+      document.getElementById('noimBanner').style.display='none';
+      const cc=cut(allPart());
+      const sim=simulate(allPart());
+      setInstr('Random partition loaded — cut cost = <strong>'+cc+'</strong>. '+(sim.peakCum>0?'KL can improve this by <strong>'+sim.peakCum+'</strong>. Click <strong>Start KL Pass</strong> to begin.':'This is already a local optimum.'));
+      updLog();draw();updateStats();
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+function reset(){
+  pos=cp(IPOS);ps=null;log=[];passN=0;dn=null;anim=false;
+  document.getElementById('btnSt').disabled=false;
+  document.getElementById('btnLk').disabled=true;
+  document.getElementById('btnSk').disabled=true;
+  document.getElementById('btnAp').style.display='none';
+  document.getElementById('pTbl').style.display='none';
+  document.getElementById('pBody').innerHTML='';
+  document.getElementById('phint').style.display='none';
+  document.getElementById('pStat').textContent='No pass in progress. Click "Start KL Pass" to begin.';
+  document.getElementById('convBanner').style.display='none';
+  document.getElementById('noimBanner').style.display='none';
+  setInstr('<strong>Explore:</strong> Drag any node across the centre line to reassign it between SW ↔ HW — D values and cut cost update live. &nbsp;|&nbsp; <strong>Algorithm:</strong> Click <strong>Start KL Pass</strong> to step through the algorithm from the current partition.');
+  updLog();draw();updateStats();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+pos=cp(IPOS);
+draw();updateStats();updLog();
+</script>
+</body>
+</html>

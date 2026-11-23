@@ -35,6 +35,8 @@ The site deploys automatically to GitHub Pages via GitHub Actions on push to `ma
   - [Diffusion Load Balancing](https://embs-book.github.io/tutorials/diffusion-algorithm/)
   - [PDA vs QPA](https://embs-book.github.io/tutorials/pda-qpa/)
   - [Preemptive vs Non-preemptive Scheduling](https://embs-book.github.io/tutorials/preemptive-scheduling/)
+  - [FPS Starvation](https://embs-book.github.io/tutorials/fps-starvation/)
+  - [EDF Domino Effect](https://embs-book.github.io/tutorials/edf-domino/)
 
 ## Content maintenance
 

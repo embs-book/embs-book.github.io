@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDA vs QPA — interactive explorer</title>
+<style>
+:root {
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f5f4ef;
+  --color-background-tertiary: #eeece5;
+  --color-text-primary: #1a1a18;
+  --color-text-secondary: #5f5e5a;
+  --color-text-tertiary: #888780;
+  --color-text-info: #185FA5;
+  --color-text-success: #3B6D11;
+  --color-text-danger: #A32D2D;
+  --color-text-warning: #854F0B;
+  --color-border-tertiary: rgba(0,0,0,0.15);
+  --color-border-secondary: rgba(0,0,0,0.30);
+  --color-border-primary: rgba(0,0,0,0.40);
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background-primary: #232321;
+    --color-background-secondary: #2d2d2a;
+    --color-background-tertiary: #1a1a18;
+    --color-text-primary: #ebe9e0;
+    --color-text-secondary: #b4b2a9;
+    --color-text-tertiary: #888780;
+    --color-text-info: #85B7EB;
+    --color-text-success: #97C459;
+    --color-text-danger: #F09595;
+    --color-text-warning: #EF9F27;
+    --color-border-tertiary: rgba(255,255,255,0.15);
+    --color-border-secondary: rgba(255,255,255,0.30);
+    --color-border-primary: rgba(255,255,255,0.40);
+  }
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--color-background-tertiary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+}
+.page {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+h1 {
+  font-size: 22px; font-weight: 500;
+  margin: 0 0 0.25rem;
+}
+.lede {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  margin: 0 0 1.5rem;
+}
+.card {
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+}
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--color-border-tertiary);
+  border-radius: 2px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--color-text-primary);
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--color-text-primary);
+  border: none;
+  cursor: pointer;
+}
+input[type="checkbox"] {
+  accent-color: var(--color-text-primary);
+  cursor: pointer;
+}
+button {
+  font-family: inherit;
+  font-size: 13px;
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--border-radius-md);
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+button:hover { background: var(--color-background-secondary); }
+button:active { transform: scale(0.98); }
+.ctrl-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 12px; }
+.ctrl-row label { font-size: 13px; color: var(--color-text-secondary); display: flex; justify-content: space-between; margin-bottom: 4px; }
+.ctrl-row .v { color: var(--color-text-primary); font-weight: 500; }
+.btn-row { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+.check { font-size: 13px; color: var(--color-text-secondary); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.metric { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; }
+.metric .lbl { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 2px; }
+.metric .val { font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.metric.good .val { color: var(--color-text-success); }
+.metric.bad .val { color: var(--color-text-danger); }
+.metric.hi .val { color: var(--color-text-info); }
+table.ts { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; margin-bottom: 12px; }
+table.ts th, table.ts td { text-align: center; padding: 5px 8px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+table.ts th { color: var(--color-text-secondary); font-weight: 500; }
+.chip { display: inline-block; padding: 2px 8px; margin: 2px; background: var(--color-background-secondary); border-radius: 10px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.chip.vis { background: #CECBF6; color: #26215C; font-weight: 500; }
+@media (prefers-color-scheme: dark) { .chip.vis { background: #3C3489; color: #CECBF6; } }
+.trace-row { display: flex; gap: 6px; padding: 3px 0; font-size: 13px; font-variant-numeric: tabular-nums; align-items: center; }
+.trace-row .pill { background: #9FE1CB; color: #04342C; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+@media (prefers-color-scheme: dark) { .trace-row .pill { background: #0F6E56; color: #E1F5EE; } }
+.trace-row .arr { color: var(--color-text-secondary); }
+.detail-col h4 { font-size: 13px; font-weight: 500; margin: 0 0 6px; color: var(--color-text-secondary); }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px; }
+select {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 4px 8px;
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+}
+.scroll-chips { max-height: 84px; overflow-y: auto; line-height: 1.6; }
+.warn { color: var(--color-text-warning); font-size: 12px; margin-top: 6px; }
+footer {
+  margin-top: 2rem;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  line-height: 1.6;
+}
+footer code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+</style>
+</head>
+<body>
+<div class="page">
+<h1>PDA vs QPA — interactive explorer</h1>
+<p class="lede">Random EDF task sets via UUniFast. Processor Demand Analysis (forward enumeration of absolute deadlines) vs Zhang-Burns QPA (backward sweep). Both are exact; the question is how many evaluations of h(t) each needs.</p>
+
+<div class="card">
+<div class="ctrl-row">
+  <div>
+    <label>tasks (n) <span class="v" id="n-out">8</span></label>
+    <input type="range" id="n-slider" min="2" max="12" value="8" step="1" />
+  </div>
+  <div>
+    <label>target utilisation <span class="v" id="u-out">0.75</span></label>
+    <input type="range" id="u-slider" min="0.3" max="0.95" value="0.75" step="0.05" />
+  </div>
+</div>
+<div class="btn-row">
+  <label style="font-size: 13px; color: var(--color-text-secondary);">periods
+    <select id="prange-sel" style="margin-left: 6px;">
+      <option value="5,50">narrow [5, 50]</option>
+      <option value="20,500">moderate [20, 500]</option>
+      <option value="50,5000">wide [50, 5000]</option>
+      <option value="10,100000" selected>extreme [10, 100000]</option>
+    </select>
+  </label>
+  <label class="check"><input type="checkbox" id="arb-check" style="margin: 0;"> arbitrary deadlines</label>
+  <button id="regen-btn">regenerate</button>
+  <span style="font-size: 12px; color: var(--color-text-tertiary);">seed: <span id="seed-out">1</span></span>
+</div>
+<div id="task-table"></div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-bottom: 14px;">
+  <div class="metric"><div class="lbl">U</div><div class="val" id="m-u">—</div></div>
+  <div class="metric"><div class="lbl">L_a</div><div class="val" id="m-la">—</div></div>
+  <div class="metric"><div class="lbl">L_b</div><div class="val" id="m-lb">—</div></div>
+  <div class="metric"><div class="lbl">L</div><div class="val" id="m-l">—</div></div>
+  <div class="metric" id="m-result-card"><div class="lbl">verdict</div><div class="val" id="m-result">—</div></div>
+  <div class="metric hi"><div class="lbl">speedup</div><div class="val" id="m-speed">—</div></div>
+</div>
+<div class="detail-grid">
+  <div class="detail-col">
+    <h4>PDA testing points (<span id="pda-count">0</span>)</h4>
+    <div id="pda-points" class="scroll-chips"></div>
+  </div>
+  <div class="detail-col">
+    <h4>QPA trace (<span id="qpa-count">0</span> evals)</h4>
+    <div id="qpa-trace"></div>
+  </div>
+</div>
+<div style="position: relative; width: 100%; height: 340px;">
+<canvas id="chart" role="img" aria-label="h(t) step function vs y=t with PDA testing points and QPA trace"></canvas>
+</div>
+<div id="warn-line" class="warn"></div>
+</div>
+
+<footer>
+<p>Task generator uses UUniFast (Bini &amp; Buttazzo 2005) for utilisation shares. Periods are drawn log-uniformly within the selected range; constrained deadlines use D ∈ [0.5T, T], arbitrary deadlines use D ∈ [0.7T, 1.8T]. L = min(L_a, L_b) for constrained deadlines, L = L_b alone for arbitrary. QPA follows Zhang &amp; Burns (2009).</p>
+</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+function fmt(n){return n>=10000?n.toLocaleString():String(n)}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function uunifast(n,U,rng){const u=[];let s=U;for(let i=1;i<n;i++){const ns=s*Math.pow(rng(),1/(n-i));u.push(s-ns);s=ns}u.push(s);return u}
+function genTasks(n,U,arb,rng,pmin,pmax){
+  const utils=uunifast(n,U,rng);
+  const tasks=[];
+  for(const u of utils){
+    const logMin=Math.log(pmin),logMax=Math.log(pmax);
+    const T=Math.max(pmin,Math.round(Math.exp(logMin+rng()*(logMax-logMin))));
+    let C=Math.max(1,Math.round(u*T));if(C>T)C=T;
+    let D;
+    if(arb){const dmin=Math.max(C,Math.floor(0.7*T));const dmax=Math.floor(1.8*T);D=dmin+Math.floor(rng()*(dmax-dmin+1))}
+    else{const dmin=Math.max(C,Math.floor(0.5*T));D=dmin+Math.floor(rng()*(T-dmin+1))}
+    tasks.push({C,T,D})
+  }
+  return tasks
+}
+function h(t,tasks){let s=0;for(const k of tasks)if(t>=k.D)s+=(Math.floor((t-k.D)/k.T)+1)*k.C;return s}
+function busyPeriod(tasks,maxIter){maxIter=maxIter||2000000;const U=tasks.reduce((s,t)=>s+t.C/t.T,0);if(U>=1)return null;let w=tasks.reduce((s,t)=>s+t.C,0);for(let i=0;i<maxIter;i++){let wn=0;for(const t of tasks)wn+=Math.ceil(w/t.T)*t.C;if(wn===w)return w;w=wn}return null}
+function La(tasks){const U=tasks.reduce((s,t)=>s+t.C/t.T,0);if(U>=1)return null;for(const t of tasks)if(t.D>t.T)return null;const sp=tasks.reduce((s,t)=>s+(t.T-t.D)*t.C/t.T,0)/(1-U);return Math.max(Math.max(...tasks.map(t=>t.D)),sp)}
+function testingPoints(tasks,L){
+  const p=new Set();
+  for(const k of tasks){
+    const maxK=Math.floor((L-k.D)/k.T);
+    if(maxK<0)continue;
+    for(let j=0;j<=maxK;j++){const t=j*k.T+k.D;if(t>0)p.add(t)}
+  }
+  return[...p].sort((a,b)=>a-b)
+}
+function pda(tasks,L){const pts=testingPoints(tasks,L);let n=0;for(const t of pts){n++;if(h(t,tasks)>t)return{sched:false,evals:n,points:pts,firstFail:t}}return{sched:true,evals:n,points:pts}}
+function qpa(tasks,L){
+  const Dmin=Math.min(...tasks.map(t=>t.D));
+  const allDeadlines=testingPoints(tasks,L);
+  const tr=[];let t=L,n=0;
+  while(n<1000){
+    const ht=h(t,tasks);n++;tr.push({t,ht});
+    if(ht>t)return{sched:false,evals:n,trace:tr};
+    if(ht<t){t=ht;if(t<Dmin)return{sched:true,evals:n,trace:tr}}
+    else{
+      let lo=-1;for(let i=allDeadlines.length-1;i>=0;i--){if(allDeadlines[i]<t){lo=allDeadlines[i];break}}
+      if(lo<0)return{sched:true,evals:n,trace:tr};
+      t=lo;if(t<Dmin)return{sched:true,evals:n,trace:tr}
+    }
+  }
+  return{sched:true,evals:n,trace:tr}
+}
+let seed=1,chart=null;
+function refresh(){
+  const n=+document.getElementById('n-slider').value;
+  const U=+document.getElementById('u-slider').value;
+  const arb=document.getElementById('arb-check').checked;
+  const [pmin,pmax]=document.getElementById('prange-sel').value.split(',').map(Number);
+  document.getElementById('n-out').textContent=n;
+  document.getElementById('u-out').textContent=U.toFixed(2);
+  document.getElementById('seed-out').textContent=seed;
+  document.getElementById('warn-line').textContent='';
+  const mixSeed=seed*1000+n*17+Math.round(U*100)+pmin*3+(arb?1:0);
+  let tasks=null,tries=0;
+  while(tries<30){
+    const rng=mulberry32(mixSeed+tries*131);
+    const cand=genTasks(n,U,arb,rng,pmin,pmax);
+    const Uc=cand.reduce((s,t)=>s+t.C/t.T,0);
+    if(Uc<0.999){tasks=cand;break}
+    tries++
+  }
+  if(!tasks){document.getElementById('task-table').innerHTML='<p style="color:var(--color-text-secondary); font-size:13px;">could not generate feasible task set — try lowering U</p>';return}
+  const actualU=tasks.reduce((s,t)=>s+t.C/t.T,0);
+  const Lb=busyPeriod(tasks);
+  const La_=arb?null:La(tasks);
+  const L=arb?Lb:(La_===null?Lb:Math.min(La_,Lb));
+  let html='<table class="ts"><thead><tr><th>task</th><th>C</th><th>T</th><th>D</th><th>D/T</th><th>U_i</th></tr></thead><tbody>';
+  tasks.forEach((t,i)=>{html+=`<tr><td>A<sub>${i+1}</sub></td><td>${fmt(t.C)}</td><td>${fmt(t.T)}</td><td>${fmt(t.D)}</td><td>${(t.D/t.T).toFixed(2)}</td><td>${(t.C/t.T).toFixed(3)}</td></tr>`});
+  html+='</tbody></table>';
+  document.getElementById('task-table').innerHTML=html;
+  document.getElementById('m-u').textContent=actualU.toFixed(3);
+  document.getElementById('m-la').textContent=La_===null?(arb?'n/a':'—'):fmt(Math.round(La_));
+  document.getElementById('m-lb').textContent=Lb===null?'—':fmt(Lb);
+  document.getElementById('m-l').textContent=L===null?'—':fmt(Math.round(L));
+  if(L===null){
+    document.getElementById('m-result').textContent='—';
+    document.getElementById('m-speed').textContent='—';
+    document.getElementById('pda-points').innerHTML='';document.getElementById('qpa-trace').innerHTML='';
+    document.getElementById('pda-count').textContent='0';document.getElementById('qpa-count').textContent='0';
+    if(chart){chart.destroy();chart=null}return
+  }
+  const Lint=Math.ceil(L);
+  const Lsafe=Math.min(Lint,20000000);
+  if(Lint>Lsafe)document.getElementById('warn-line').textContent='L is very large — PDA-point enumeration capped for responsiveness.';
+  const pdaRes=pda(tasks,Lsafe);
+  const qpaRes=qpa(tasks,Lint);
+  document.getElementById('m-result').textContent=pdaRes.sched?'schedulable':'infeasible';
+  document.getElementById('m-result-card').className='metric '+(pdaRes.sched?'good':'bad');
+  document.getElementById('m-speed').textContent=qpaRes.evals>0?(pdaRes.evals/qpaRes.evals).toFixed(1)+'×':'—';
+  const qpaSet=new Set(qpaRes.trace.map(x=>x.t));
+  const pLen=pdaRes.points.length;
+  document.getElementById('pda-count').textContent=fmt(pLen);
+  let pPoints;
+  if(pLen>120){pPoints=pdaRes.points.slice(0,60).concat([-1]).concat(pdaRes.points.slice(-30))}else{pPoints=pdaRes.points}
+  document.getElementById('pda-points').innerHTML=pPoints.map(p=>p===-1?`<span class="chip">… ${fmt(pLen-90)} more …</span>`:`<span class="chip${qpaSet.has(p)?' vis':''}">${fmt(p)}</span>`).join('');
+  document.getElementById('qpa-count').textContent=qpaRes.evals;
+  document.getElementById('qpa-trace').innerHTML=qpaRes.trace.map((x,i)=>`<div class="trace-row">${i>0?'<span class="arr">↓</span>':''}<span class="pill">t = ${fmt(x.t)}</span><span class="arr">h(t) = ${fmt(x.ht)}</span></div>`).join('');
+  const tps=pdaRes.points;
+  let plotPoints=tps;
+  if(tps.length>800){const step=Math.ceil(tps.length/800);plotPoints=tps.filter((_,i)=>i%step===0);if(plotPoints[plotPoints.length-1]!==tps[tps.length-1])plotPoints.push(tps[tps.length-1])}
+  const hSeries=[{x:0,y:0}];
+  for(const p of plotPoints)hSeries.push({x:p,y:h(p,tasks)});
+  if(!plotPoints.length||plotPoints[plotPoints.length-1]<Lint)hSeries.push({x:Lint,y:h(Lint,tasks)});
+  const diagSeries=[{x:0,y:0},{x:Lint,y:Lint}];
+  const pdaScatter=plotPoints.map(p=>({x:p,y:h(p,tasks)}));
+  const qpaScatter=qpaRes.trace.map(x=>({x:x.t,y:x.ht}));
+  if(chart)chart.destroy();
+  const darkMode=matchMedia('(prefers-color-scheme: dark)').matches;
+  const axisColor=darkMode?'#b4b2a9':'#5f5e5a';
+  const gridColor=darkMode?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.08)';
+  chart=new Chart(document.getElementById('chart'),{
+    data:{datasets:[
+      {type:'line',label:'y = t',data:diagSeries,borderColor:'#378ADD',borderDash:[5,4],borderWidth:1.2,pointRadius:0,tension:0},
+      {type:'line',label:'h(t)',data:hSeries,borderColor:'#534AB7',backgroundColor:'rgba(83,74,183,0.08)',borderWidth:1.8,pointRadius:0,stepped:'after',fill:'origin',tension:0},
+      {type:'scatter',label:'PDA points',data:pdaScatter,backgroundColor:'#534AB7',borderColor:'#534AB7',pointRadius:plotPoints.length>200?1:(plotPoints.length>60?2:4),pointStyle:'circle'},
+      {type:'scatter',label:'QPA trace',data:qpaScatter,backgroundColor:'#EF9F27',borderColor:'#854F0B',borderWidth:1.8,pointRadius:8,pointStyle:'rectRot',showLine:true,tension:0}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:c=>`t = ${fmt(Math.round(c[0].parsed.x))}`,label:c=>`${c.dataset.label}: ${fmt(Math.round(c.parsed.y))}`}}},
+      scales:{
+        x:{type:'linear',title:{display:true,text:'t',color:axisColor},min:0,max:Lint,ticks:{color:axisColor,callback:v=>fmt(v),maxTicksLimit:8},grid:{color:gridColor}},
+        y:{title:{display:true,text:'h(t)',color:axisColor},beginAtZero:true,suggestedMax:Lint,ticks:{color:axisColor,callback:v=>fmt(v)},grid:{color:gridColor}}
+      }
+    }
+  })
+}
+['n-slider','u-slider'].forEach(id=>document.getElementById(id).addEventListener('input',refresh));
+document.getElementById('arb-check').addEventListener('change',refresh);
+document.getElementById('prange-sel').addEventListener('change',refresh);
+document.getElementById('regen-btn').addEventListener('click',()=>{seed++;refresh()});
+refresh();
+</script>
+</body>
+</html>
